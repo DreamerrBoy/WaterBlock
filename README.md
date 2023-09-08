@@ -5,7 +5,7 @@ With this new version, you can now add other abilities to blocking list, includi
 In addition to this, now you can edit WaterBlock's combination, description and instructions.  
   
 In the config file;  
-Add your ability to the section named `BlockAbilities` with the format `AbilityName:WaveRange:BlockAmount`  
+Add your ability to the section named `BlockAbilities` with the format `AbilityName:WaveRange:BlockLimit`  
   
 Example Config File:  
 ```yml
