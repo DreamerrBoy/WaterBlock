@@ -2,6 +2,7 @@ package me.dreamerboy;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +29,7 @@ import com.projectkorra.projectkorra.ability.util.ComboUtil;
 import com.projectkorra.projectkorra.configuration.ConfigManager;
 import com.projectkorra.projectkorra.util.ParticleEffect;
 import com.projectkorra.projectkorra.util.TempBlock;
+import com.projectkorra.projectkorra.waterbending.SurgeWave;
 import com.projectkorra.projectkorra.waterbending.Torrent;
 
 public class WaterBlock extends WaterAbility implements AddonAbility, ComboAbility {
@@ -50,7 +52,19 @@ public class WaterBlock extends WaterAbility implements AddonAbility, ComboAbili
 			final double range = Double.parseDouble(str[1].trim());
 			final int amount = Integer.parseInt(str[2].trim());
 			if(range <= 0 || amount <= 0) return null;
-			return new BlockAbility(CoreAbility.getAbility(str[0]), range, amount);
+			return new BlockAbility(getAbility(str[0]), range, amount);
+		}
+		
+		/*
+		 * We cannot get the correct Torrent or Surge class by using CoreAbility#getAbility
+		 */
+		private static CoreAbility getAbility(final String str) {
+			if(str.equalsIgnoreCase("Torrent"))
+				return CoreAbility.getAbility(Torrent.class);
+			else if(str.equalsIgnoreCase("Surge"))
+				return CoreAbility.getAbility(SurgeWave.class);
+			else 
+				return CoreAbility.getAbility(str);
 		}
 		
 		private static boolean isNumeric(final String strNum) {
@@ -93,9 +107,9 @@ public class WaterBlock extends WaterAbility implements AddonAbility, ComboAbili
 		this.radius = ConfigManager.getConfig().getDouble(PATH + "Radius");
 		
 		ConfigManager.getConfig().getStringList(PATH + "BlockAbilities").stream()
-																		.map(str -> BlockAbility.convert(str))
-																		.filter(abil -> abil != null)
-																		.forEach(abil -> this.blockAbilities.put(abil, 0));
+										.map(str -> BlockAbility.convert(str))
+										.filter(abil -> abil != null)
+										.forEach(abil -> this.blockAbilities.put(abil, 0));
 	}
 
 	@Override
@@ -188,11 +202,22 @@ public class WaterBlock extends WaterAbility implements AddonAbility, ComboAbili
 			if(block == null)
 				return;
 			
-			this.waves.add(new BlockingWave(collision.getAbilitySecond().getLocation(), block.range));
+			Location location = collision.getAbilitySecond().getLocation();
+			if(collision.getAbilitySecond().getLocations().size() > 1) {
+				location = collision.getAbilitySecond().getLocations().stream()
+		                .min(Comparator.comparingDouble(loc -> loc.distance(collision.getAbilityFirst().getLocation())))
+		                .orElse(collision.getAbilitySecond().getLocation());
+			}
+			
+			if(location == null)
+				return;
+			
+			boolean removeFlag = false;
 			this.blockAbilities.put(block, this.blockAbilities.get(block)+1);
-			this.blocked = true;
 			if(this.blockAbilities.get(block) >= block.amount)
-				this.remove();
+				removeFlag = true;
+			this.waves.add(new BlockingWave(location, block.range, removeFlag));
+			this.blocked = true;
 		}
 	}
 	
@@ -247,18 +272,23 @@ public class WaterBlock extends WaterAbility implements AddonAbility, ComboAbili
 		private Location location;
 		private Vector dir;
 		private double range, maxRange;
+		private boolean removeFlag;
 		
-		public BlockingWave(final Location origin, final double maxRange) {
+		public BlockingWave(final Location origin, final double maxRange, final boolean removeFlag) {
 			this.location = origin.clone();
 			this.maxRange = maxRange;
+			this.removeFlag = removeFlag;
 			
 			this.dir = origin.clone().toVector().subtract(player.getLocation().toVector());
 		}
 		
-		public boolean run() {
+		private boolean run() {
 			this.range++;
-			if(this.range > this.maxRange)
+			if(this.range > this.maxRange) {
+				if(this.removeFlag)
+					WaterBlock.this.remove();
 				return false;
+			}
 			
 			this.playEffect(this.location, this.range);
 			
