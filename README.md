@@ -6,6 +6,8 @@ In addition to this, now you can edit WaterBlock's combination, description and 
   
 In the config file;  
 Add your ability to the section named `BlockAbilities` with the format `AbilityName:WaveRange:BlockLimit`  
+
+For more information, you can it on check here: [ProjectKorra Forums](https://projectkorra.com/forum/resources/waterblock-by-dreamerboy-and-hiro.396/)
   
 Example Config File:  
 ```yml
