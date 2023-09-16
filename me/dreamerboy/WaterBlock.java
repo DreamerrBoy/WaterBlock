@@ -26,6 +26,7 @@ import com.projectkorra.projectkorra.ability.WaterAbility;
 import com.projectkorra.projectkorra.ability.util.Collision;
 import com.projectkorra.projectkorra.ability.util.ComboManager.AbilityInformation;
 import com.projectkorra.projectkorra.ability.util.ComboUtil;
+import com.projectkorra.projectkorra.attribute.Attribute;
 import com.projectkorra.projectkorra.configuration.ConfigManager;
 import com.projectkorra.projectkorra.util.ParticleEffect;
 import com.projectkorra.projectkorra.util.TempBlock;
@@ -34,58 +35,18 @@ import com.projectkorra.projectkorra.waterbending.Torrent;
 
 public class WaterBlock extends WaterAbility implements AddonAbility, ComboAbility {
 	
-	private static class BlockAbility {
-		private final CoreAbility ability;
-		private final int amount;
-		private final double range;
-		
-		public BlockAbility(final CoreAbility ability, final double range, final int amount) {
-			this.ability = ability;
-			this.range = range;
-			this.amount = amount;
-		}
-		
-		public static BlockAbility convert(final String configLine) {
-			final String[] str = configLine.split(":");
-			if(str.length != 3 || CoreAbility.getAbility(str[0].trim()) == null || !isNumeric(str[1].trim()) || !isNumeric(str[2].trim()))
-				return null;
-			final double range = Double.parseDouble(str[1].trim());
-			final int amount = Integer.parseInt(str[2].trim());
-			if(range <= 0 || amount <= 0) return null;
-			return new BlockAbility(getAbility(str[0]), range, amount);
-		}
-		
-		/*
-		 * We cannot get the correct Torrent or Surge class by using CoreAbility#getAbility
-		 */
-		private static CoreAbility getAbility(final String str) {
-			if(str.equalsIgnoreCase("Torrent"))
-				return CoreAbility.getAbility(Torrent.class);
-			else if(str.equalsIgnoreCase("Surge"))
-				return CoreAbility.getAbility(SurgeWave.class);
-			else 
-				return CoreAbility.getAbility(str);
-		}
-		
-		private static boolean isNumeric(final String strNum) {
-		    if (strNum == null) {
-		        return false;
-		    }
-		    try {
-		    	Double.parseDouble(strNum);
-		    } catch (final NumberFormatException nfe) {
-		        return false;
-		    }
-		    return true;
-		}
-	}
-	
 	private static final String PATH = "ExtraAbilities.DreamerBoy.Water.WaterBlock.";
 	private List<BlockingWave> waves = new ArrayList<>();
 	private Map<BlockAbility, Integer> blockAbilities = new HashMap<>();
 	
-	private long cooldown, duration;
-	private double radius, knockback;
+	@Attribute(Attribute.COOLDOWN)
+	private long cooldown;
+	@Attribute(Attribute.DURATION)
+	private long duration;
+	@Attribute(Attribute.RADIUS)
+	private double radius;
+	@Attribute(Attribute.KNOCKBACK)
+	private double knockback;
 	private boolean cooldownOnOutOfTheSightView, blocked;
 
 	public WaterBlock(final Player player) {
@@ -107,9 +68,9 @@ public class WaterBlock extends WaterAbility implements AddonAbility, ComboAbili
 		this.radius = ConfigManager.getConfig().getDouble(PATH + "Radius");
 		
 		ConfigManager.getConfig().getStringList(PATH + "BlockAbilities").stream()
-										.map(str -> BlockAbility.convert(str))
-										.filter(abil -> abil != null)
-										.forEach(abil -> this.blockAbilities.put(abil, 0));
+																		.map(str -> BlockAbility.convert(str))
+																		.filter(abil -> abil != null)
+																		.forEach(abil -> this.blockAbilities.put(abil, 0));
 	}
 
 	@Override
@@ -238,7 +199,7 @@ public class WaterBlock extends WaterAbility implements AddonAbility, ComboAbili
 
 	@Override
 	public String getVersion() {
-		return "2.0";
+		return "2.1";
 	}
 	
 	@Override
@@ -265,6 +226,52 @@ public class WaterBlock extends WaterAbility implements AddonAbility, ComboAbili
 	public void stop() {
 		super.remove();
 		ProjectKorra.log.info(getName() + " " + getVersion() + " by " + getAuthor() + " disabled! ");
+	}
+	
+	private static class BlockAbility {
+		private final CoreAbility ability;
+		private final int amount;
+		private final double range;
+		
+		public BlockAbility(final CoreAbility ability, final double range, final int amount) {
+			this.ability = ability;
+			this.range = range;
+			this.amount = amount;
+		}
+		
+		public static BlockAbility convert(final String configLine) {
+			final String[] str = configLine.split(":");
+			if(str.length != 3 || CoreAbility.getAbility(str[0].trim()) == null || !isNumeric(str[1].trim()) || !isNumeric(str[2].trim()))
+				return null;
+			final double range = Double.parseDouble(str[1].trim());
+			final int amount = Integer.parseInt(str[2].trim());
+			if(range <= 0 || amount <= 0) return null;
+			return new BlockAbility(getAbility(str[0]), range, amount);
+		}
+		
+		/*
+		 * We cannot get the correct Torrent or Surge class by using CoreAbility#getAbility
+		 */
+		private static CoreAbility getAbility(final String str) {
+			if(str.equalsIgnoreCase("Torrent"))
+				return CoreAbility.getAbility(Torrent.class);
+			else if(str.equalsIgnoreCase("Surge"))
+				return CoreAbility.getAbility(SurgeWave.class);
+			else 
+				return CoreAbility.getAbility(str);
+		}
+		
+		private static boolean isNumeric(final String strNum) {
+		    if (strNum == null) {
+		        return false;
+		    }
+		    try {
+		    	Double.parseDouble(strNum);
+		    } catch (final NumberFormatException nfe) {
+		        return false;
+		    }
+		    return true;
+		}
 	}
 
 	private class BlockingWave {
